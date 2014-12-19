@@ -1,0 +1,27 @@
+import(stats)
+
+importFrom(mvtnorm, dmvnorm, rmvnorm)
+importFrom(gaussquad, hermite.h.quadrature.rules)
+importFrom(nlme, fdHess)
+
+export(
+    specify_sem, 
+    count_free_parameters,
+    create_sem,
+    fill_model,
+    em
+    )
+
+S3method(simulate, lms)
+S3method(simulate, semm)
+S3method(simulate, nsemm)
+S3method(summary, emEst)
+S3method(print, summary.emEst)
+S3method(logLik, emEst)
+S3method(anova, emEst)
+S3method(AIC, emEst)
+S3method(plot, emEst)
+S3method(as.data.frame, lms)
+S3method(as.data.frame, semm)
+S3method(as.data.frame, nsemm)
+
