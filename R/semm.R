@@ -40,8 +40,7 @@ sigma_semm <- function(matrices) {
     sigma <- rbind(cbind(s11,s12), cbind(s21, s22))
 
     # TODO check if this warning is really necessary
-    if (!isSymmetric(sigma)) warning("Sigma is not symmetric. This is probably due to
-                                     numerical calculation.")
+    if (!isSymmetric(sigma)) warning("Sigma is not symmetric. This is probably due to numerical calculation.")
     tryCatch(solve(sigma), error = function(e) stop("Sigma is not nonsingular."))
 
     sigma
@@ -59,9 +58,7 @@ estep_semm <- function(model, parameters, data) {
 
         p.ij <- w.c * dmvnorm(data, mean=mu_semm(model.filled$matrices[[c]]),
                               sigma=sigma_semm(model.filled$matrices[[c]]))
-        if (sum(p.ij) == 0) stop("Posterior probability could not be calculated
-                                 properly. Choose different starting
-                                 parameters.")
+        if (sum(p.ij) == 0) stop("Posterior probability could not be calculated properly. Choose different starting parameters.")
         P <- cbind(P, p.ij, deparse.level=0)
     }
     P <- P / rowSums(P)
@@ -81,8 +78,12 @@ loglikelihood_semm <- function(parameters, matrices, data, p, w) {
             matrices[[i]] <- matrix.i
         }
     }
-    matrices$Psi <- fill_symmetric(matrices$Psi)
-    matrices$Phi <- fill_symmetric(matrices$Phi)
+    tryCatch({ matrices$Psi <- fill_symmetric(matrices$Psi) },
+                                       error=function(e) e,
+                                       warning=function(w) w)
+    tryCatch({ matrices$Phi <- fill_symmetric(matrices$Phi) },
+                                       error=function(e) e,
+                                       warning=function(w) w)
 
     N <- nrow(data)
     N.c <- sum(p)

@@ -15,9 +15,9 @@
     Details.}
 }
 \details{
-    Labels on column \code{label} need to be labeled in a certain way.
-    Labels can be looked at when an object created with
-    \code{\link{specify_sem}} is transformed to a data frame with
+    Labels in column \code{label} need to be labeled in a certain way.
+    Labels can be looked up by creating an object with
+    \code{\link{specify_sem}} and then transforming it to a data frame with
     \code{as.data.frame}. See examples below.
 }
 \value{
@@ -27,7 +27,8 @@
 \seealso{\code{\link{specify_sem}}}
 \examples{
 # specify model
-model <- specify_sem(4, 1, 2, 1, xi="x1-x2,x3-x4", eta="y1")
+model <- specify_sem(num.x = 4, num.y = 1, num.xi = 2, num.eta = 1, 
+         xi = "x1-x2,x3-x4", eta = "y1", interaction = "xi1:xi2")
 # create data frame
 dat <- as.data.frame(model)
 # recreate model

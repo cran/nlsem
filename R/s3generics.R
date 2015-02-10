@@ -1,7 +1,7 @@
 # s3generics.R
 #
 # created Nov/03/2014, KN
-# last mod Dec/04/2014, KN
+# last mod Feb/06/2015, KN
 
 #--------------- main functions ---------------
 
@@ -122,27 +122,16 @@ summary.emEst <- function(object, ...) {
     # estimates
     est <- object$coefficients
 
-    warn.msg <- "Standard errors could not be computed, because negative hessian was either not available or singular"
-
     # standard errors
     if (is.numeric(est)) {
-        s.error <- tryCatch({sqrt(diag(solve(object$negHessian)))},
-            error=function(e) {
-                warning(warn.msg)
-                NA
-            })
+        s.error <- calc_standard_error(object$neg.hessian)
         tvalue <- est / s.error
         pvalue <- 2 * pnorm(-abs(tvalue))
         est.table <- cbind(est, s.error, tvalue, pvalue)
         dimnames(est.table)  <- list(names(est), c("Estimate", "Std. Error", "t value", "Pr(>|z|)"))
     } else {
         est.table <- Reduce('rbind', lapply(seq_along(est), function(c) {
-                            s.error <- tryCatch({
-                                sqrt(diag(solve(object$negHessian[[c]])))
-                            }, error=function(e) {
-                                warning(warn.msg)
-                                NA
-                            })
+                            s.error <- calc_standard_error(object$neg.hessian[[c]])
                             tvalue <- est[[c]] / s.error
                             pvalue <- 2 * pnorm(-abs(tvalue))
                             est.table <- cbind(est[[c]], s.error, tvalue, pvalue)
@@ -160,7 +149,8 @@ summary.emEst <- function(object, ...) {
     logLik.table <- cbind(object$loglikelihoods, abs.change, rel.change)
     dimnames(logLik.table) <- list(1:iterations, c("loglikelihood", "difference", "relative change"))
 
-    ans <- list(estimates=est.table,
+    ans <- list(model=object$model.class,
+                estimates=est.table,
                 iterations=iterations,
                 finallogLik=object$objective,
                 logLikelihoods=logLik.table)
@@ -176,12 +166,16 @@ summary.emEst <- function(object, ...) {
 
 print.summary.emEst <- function(x, digits=max(3, getOption("digits") - 3),
                                cs.ind=2:3, ...) {
-
+    
+    cat("\nSummary for model of class", x$model, "\n")
     cat("\nEstimates:\n")
     printCoefmat(x$estimates, digits=digits, cs.ind=cs.ind, ...)
-    cat("\nNumber of iterations:", x$iterations, "\nFinal loglikelihood:",
-        format(x$finallogLik, digits=digits), "\n\n")
-    cat("\nLikelihoods:\n")
+    cat("\nNumber of iterations:", x$iterations,
+        "\nFinal loglikelihood:", round(x$finallogLik, 3)) 
+    if (x$model == "semm" || x$model == "nsemm"){
+        cat("\nFinal weights:", round(x$class.weights, 3))
+    }
+    cat("\n\n", "\nLikelihoods:\n")
     printCoefmat(x$logLikelihoods, digits=6, cs.ind=2:3, ...)
 
 }
@@ -269,7 +263,8 @@ BIC.emEst <- function(object, ...) {
 
     dots <- list(...)
     if (length(dots) == 0){
-        out <- as.numeric(-2*logLik(object) + log(object$info$n)*length(object$coef))
+        out <- as.numeric(-2*logLik(object) +
+               log(object$info$n)*length(unlist(object$coef)))
     } else {
         mlist <- list(object, ...)
         names(mlist) <- c(deparse(substitute(object)),
@@ -303,13 +298,33 @@ plot.emEst <- function(x, y, ...) {
 # calculates relative change defined as absolute difference divided by
 # maximum absolute value
 rel_change <- function(x) {
+    
+    if (length(x) == 1) {
+        rel.change <- 0
+    } else {
+        rel.change <- numeric(length(x))
+        for (i in 2:length(rel.change)){
 
-    rel.change <- numeric(length(x))
-    for (i in 2:length(rel.change)){
-
-        rel.change[i] <- abs(x[i-1]-x[i])/max(abs(x[i-1]), abs(x[i]))
+            rel.change[i] <- abs(x[i-1]-x[i])/max(abs(x[i-1]), abs(x[i]))
+        }
     }
     rel.change
 }
 
-
+calc_standard_error <- function(neg.hessian) {
+    warn.msg <- "Standard errors could not be computed, because negative Hessian was either not available or singular"
+    s.error <- tryCatch({
+                    sqrt(diag(solve(neg.hessian)))
+                }, error=function(e) {
+                    NA
+                }, warning=function(w) {
+                     if (grepl("NaN", conditionMessage(w))) {
+                       suppressWarnings(sqrt(diag(solve(neg.hessian))))
+                    } else{
+                        sqrt(diag(solve(neg.hessian)))
+                    }
+                })
+                if (all(is.na(s.error))) warning(warn.msg)
+                if (any(is.nan(s.error))) warning("Standard errors for some coefficients could not be computed.") 
+    s.error
+}

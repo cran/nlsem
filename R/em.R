@@ -1,10 +1,10 @@
 # em.R
 #
-# last mod: Dec/12/2014, KN
+# last mod: Jan/26/2015, NU
 
 # Performs EM-algorithm for different models of class 'lms', 'semm', and
-# soon 'nsemm'
-em <- function(model, data, start, logger=FALSE, convergence=1e-02,
+# 'nsemm'
+em <- function(model, data, start, logger=TRUE, convergence=1e-02,
                 max.iter=100, m=16, optimizer=c("nlminb", "optim"),
                 max.mstep=1, neg.hessian=TRUE, ...) {
 
@@ -21,9 +21,13 @@ em <- function(model, data, start, logger=FALSE, convergence=1e-02,
 
     if (class(model) == "lms" || class(model) == "nsemm"){
         n.na <- length(which(is.na(model$matrices$class1$Omega)))
-        if (any(start[-c(1:(length(start) - 3))] == 0)){
+        if (any(start[-c(1:(length(start) - n.na))] == 0)){
             stop("Starting parameters for Omega should not be 0.")
         }
+    }
+
+    if (anyNA(model$matrices$class1$Omega) && model$info$num.eta > 1){
+        stop("Model with interaction effects and num.eta > 1 cannot be fitted (yet).")
     }
 
     cat("-----------------------------------\n")
@@ -32,8 +36,6 @@ em <- function(model, data, start, logger=FALSE, convergence=1e-02,
     cat("-----------------------------------\n")
     cat("-----------------------------------\n")
 
-    ll.old   <- 0     # loglikelihood of the last iteration
-    ll.new   <- 1     # loglikelihood of the current iteration
     ll.ret   <- NULL
     num.iter <- 0     # number of iterations
     if (class(model) == "semm" || class(model) == "nsemm") {
@@ -41,12 +43,15 @@ em <- function(model, data, start, logger=FALSE, convergence=1e-02,
     } else {
         par.new <- convert_parameters_lms(model, start)
     }
-    par.old  <- 0
+    ll.new <- 0
 
-    while(abs(ll.old - ll.new) > convergence) { # as long as no convergence reached
-    #while(sum((par.old - par.new)^2) > convergence) { # as long as no convergence reached
-        if(ll.new - ll.old > 0.001 && num.iter > 3) {
-            warning("Likelihood should be decreasing.")
+    run <- TRUE
+    while(run) { # as long as no convergence is reached
+
+        if (num.iter > 3){
+            if (ll.new - ll.old > 0) {
+                warning("Loglikelihood should be increasing.")
+            }
         }
 
         if(logger == TRUE) {
@@ -107,8 +112,8 @@ em <- function(model, data, start, logger=FALSE, convergence=1e-02,
 
         if(logger == TRUE) {
             cat("Results of maximization \n")
-            cat(paste0("Final loglikelihood: ", round(-m.step$objective, 3), "\n"))
-            cat(paste0("Convergence: ", m.step$convergence, "\n"))
+            cat(paste0("Loglikelihood: ", round(-m.step$objective, 3), "\n"))
+            cat(paste0("Convergence: ", m.step$convergence[1], "\n"))
             cat(paste0("Number of iterations: ", m.step$iterations, "\n"))
             cat("----------------------------------- \n")
         }
@@ -122,16 +127,18 @@ em <- function(model, data, start, logger=FALSE, convergence=1e-02,
             warning("Maximum number of iterations was reached. EM algorithm might not have converged.")
             break
         }
+        if (abs(ll.old - ll.new) < convergence) run <- FALSE
     }
+
     cat("-----------------------------------\n")
     cat("EM completed \n")
-    cat(paste0("Previous loglikelihood: ", round(-ll.old, 3), "\n"))
-    cat(paste0("Final loglikelihood: ", round(-ll.new, 3),"\n"))
+    #cat(paste0("Previous loglikelihood: ", round(-ll.old, 3), "\n"))
+    #cat(paste0("Final loglikelihood: ", round(-ll.new, 3),"\n"))
     cat("-----------------------------------\n")
 
     cat("-----------------------------------\n")
     if (neg.hessian == TRUE) {
-        cat("Computing Hessian \n")
+        cat("Computing negative Hessian \n")
     } else {
         cat("Computing final model \n")
     }
@@ -194,20 +201,21 @@ em <- function(model, data, start, logger=FALSE, convergence=1e-02,
         em_convergence <- "no"
     } else {em_convergence <- "yes"}
 
-    info   <- model$info[1:4]
+    info   <- model$info[c("num.xi","num.eta","num.x","num.y")]
     info$n <- nrow(data)
 
     out <- list(model.class=class(model), coefficients=final$par,
                 objective=-final$objective,
-                em_convergence=em_convergence,
-                negHessian=final$hessian,
+                em.convergence=em_convergence,
+                neg.hessian=final$hessian,
                 loglikelihoods=-ll.ret,
                 info=info)
 
     # attach w for semm and nsemm
     if (class(model) == "semm" || class(model) == "nsemm") {
-        out$info <- model$info[c(1:4,7)]
-    }
+        out$info <- model$info[c("num.xi", "num.eta", "num.x", "num.y",
+                                 "num.classes", "w")] 
+        out$info$n <- nrow(data) }
 
     class(out) <- "emEst"
     out
