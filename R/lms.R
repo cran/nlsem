@@ -1,7 +1,7 @@
 # lms.R
 #
 # created: Sep/11/2014, NU
-# last mod: Nov/25/2014, NU
+# last mod: Feb/26/2015, NU
 
 #--------------- main functions ---------------
 
@@ -19,10 +19,13 @@ mu_lms <- function(model, z) {
     } else if (k == 0) {
         z.1 <- rep(0, n - k)
     } else z.1 <- z
+            # added quadratic effects, not in original equations
     A.z  <- matrices$A %*% z.1 
-    mu.x <- matrices$nu.x + matrices$Lambda.x %*% A.z 
+    mu.x <- matrices$nu.x + matrices$Lambda.x %*% (matrices$tau + A.z )
+            # added tau's, not in the original equations
     mu.y <- matrices$nu.y + matrices$Lambda.y %*% (matrices$alpha +
-            matrices$Gamma %*% A.z + t(A.z) %*% matrices$Omega %*% A.z)
+            matrices$Gamma %*% (matrices$tau + A.z) + t(matrices$tau + A.z)
+            %*% matrices$Omega %*% (matrices$tau + A.z))
     mu   <- c(mu.x, mu.y)
 
     mu
@@ -45,7 +48,8 @@ sigma_lms <- function(model, z) {
     A.z   <- matrices$A %*% z.1 
     d.mat <- get_d(n=n, k=k)
     Lx.A  <- matrices$Lambda.x %*% matrices$A
-    temp  <- matrices$Gamma %*% matrices$A + t(A.z) %*% matrices$Omega %*% matrices$A
+    temp  <- matrices$Gamma %*% matrices$A + t(matrices$tau + A.z) %*% matrices$Omega %*% matrices$A
+            # added tau's, not in original equations
     s11   <- Lx.A %*% d.mat %*% t(Lx.A) + matrices$Theta.d 
     s12   <- Lx.A %*% d.mat %*% t(temp) %*% t(matrices$Lambda.y)
     s21   <- t(s12)
@@ -68,11 +72,11 @@ estep_lms <- function(model, parameters, dat, m, ...) {
     mod.filled <- fill_model(model=model, parameters=parameters)
 
     k <- get_k(mod.filled$matrices$class1$Omega)
+    if (k != 0){
     quad <- quadrature(m, k)
-
     V <- quad$n       # matrix of node vectors m x k
     w <- quad$w       # weights
-    if (k == 0){
+    } else {
         V <- 0
         w <- 1
         # do not need mixtures, if I do not have interactions
@@ -209,7 +213,7 @@ quadrature <- function(m, k) {
 }
 
 # Convert parameters for Phi in LMS model to A 
-convert_parameters_lms <- function(model, parameters) {
+convert_parameters_singleClass <- function(model, parameters) {
 
     names(parameters) <- model$info$par.names
     Phi <- matrix(0, nrow=model$info$num.xi, ncol=model$info$num.xi)

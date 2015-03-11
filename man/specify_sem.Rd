@@ -83,9 +83,9 @@ specify_sem(num.x, num.y, num.xi, num.eta, xi, eta, num.classes = 1,
     \eqn{\eta}{eta}'s) and \eqn{\bf B}{Beta} is an identity matrix.
 }
 \value{
-    An object of class \code{lms}, \code{semm}, or \code{nsemm} which can be
-    used to estimate parameters using \code{\link{em}} that consists of the
-    following components:
+    An object of class \code{singleClass}, \code{semm}, or \code{nsemm}
+    which can be used to estimate parameters using \code{\link{em}} that
+    consists of the following components:
     \item{matrices}{list of matrices specifying the structural equation
     model.}
     \item{info}{list of informations about structural equation model.}
@@ -116,7 +116,7 @@ constr <- c(1, NA, NA, 0, 0, 0, 0, 0, 0, 1, NA, NA, 1, NA, NA, NA, NA, NA,
     0, 0, 0, 0, 0, 0, NA, 0, 0, 0, 0, 0, 0, NA, 0, 0, 0, 0, 0, 0, NA, 0, 0, 0,
     0, 0, 0, NA, 0, 0, 0, 0, 0, 0, NA, NA, 0, 0, 0, NA, 0, 0, 0, NA, NA, NA,
     NA, 0, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 0, 0, 0, 0, NA, 0)
-specs$class2 <- constr
+specs$class1 <- constr
 # create model from data frame
 model.custom <- create_sem(specs)
 }

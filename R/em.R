@@ -1,15 +1,23 @@
 # em.R
 #
-# last mod: Jan/26/2015, NU
+# last mod: Mar/10/2015, NU
 
-# Performs EM-algorithm for different models of class 'lms', 'semm', and
+# Performs EM-algorithm for different models of class 'singleClass', 'semm', and
 # 'nsemm'
-em <- function(model, data, start, logger=TRUE, convergence=1e-02,
+em <- function(model, data, start, qml=FALSE, logger=TRUE, convergence=1e-02,
                 max.iter=100, m=16, optimizer=c("nlminb", "optim"),
-                max.mstep=1, neg.hessian=TRUE, ...) {
+                max.mstep=1, max.singleClass=1, neg.hessian=TRUE, ...) {
 
-    stopifnot(class(model) == "lms" || class(model) == "semm" ||
+    stopifnot(class(model) == "singleClass" || class(model) == "semm" ||
               class(model) == "nsemm")
+
+    if (is.matrix(data)) {
+        data <- data
+    } else if (is.data.frame(data)) {
+        data <- as.matrix(data)
+    } else {
+        stop("data need to be a matrix or a data frame.")
+    }
 
     if (!count_free_parameters(model) == length(start)){
         stop("Number of starting parameters is not equal to number of free parameters in model.")
@@ -19,7 +27,7 @@ em <- function(model, data, start, logger=TRUE, convergence=1e-02,
         stop("Number of columns in data does not match number of x's and y's.")
     }
 
-    if (class(model) == "lms" || class(model) == "nsemm"){
+    if (class(model) == "singleClass" || class(model) == "nsemm"){
         n.na <- length(which(is.na(model$matrices$class1$Omega)))
         if (any(start[-c(1:(length(start) - n.na))] == 0)){
             stop("Starting parameters for Omega should not be 0.")
@@ -30,18 +38,20 @@ em <- function(model, data, start, logger=TRUE, convergence=1e-02,
         stop("Model with interaction effects and num.eta > 1 cannot be fitted (yet).")
     }
 
-    cat("-----------------------------------\n")
-    cat("Starting EM-algorithm for", class(model), "\n")
-    cat(paste("Convergence: ", convergence, "\n"))
-    cat("-----------------------------------\n")
-    cat("-----------------------------------\n")
+    if(logger == TRUE) {
+        cat("-----------------------------------\n")
+        cat("Starting EM-algorithm for", class(model), "\n")
+        cat(paste("Convergence: ", convergence, "\n"))
+        cat("-----------------------------------\n")
+        cat("-----------------------------------\n")
+    }
 
     ll.ret   <- NULL
     num.iter <- 0     # number of iterations
     if (class(model) == "semm" || class(model) == "nsemm") {
         par.new <- start
     } else {
-        par.new <- convert_parameters_lms(model, start)
+        par.new <- convert_parameters_singleClass(model, start)
     }
     ll.new <- 0
 
@@ -65,7 +75,7 @@ em <- function(model, data, start, logger=TRUE, convergence=1e-02,
 
         # E-step
         switch(class(model),
-           "lms" = {
+           "singleClass" = {
                 names(model$matrices$class1)[grep("Phi", names(model$matrices$class1))] <- "A"
                 # rename Phi to A, since LMS algorithm estimates A
                 P <- estep_lms(model=model, parameters=par.old, dat=data, m=m, ...)
@@ -79,7 +89,8 @@ em <- function(model, data, start, logger=TRUE, convergence=1e-02,
             },
             "nsemm" = {
                 res <- estep_nsemm(model=model, parameters=par.old, data=data,
-                                   logger=logger, ...)
+                                   max.singleClass=max.singleClass, qml=qml,
+                                   convergence=convergence, ...)
                 P            <- res$P
                 model$info$w <- res$w.c
                 par.old      <- res$par.old
@@ -95,7 +106,7 @@ em <- function(model, data, start, logger=TRUE, convergence=1e-02,
         
         # M-step
         switch(class(model),
-            "lms" = {
+            "singleClass" = {
                 m.step <- mstep_lms(model=model, P=P, dat=data, parameters=par.old,
                                 m=m, optimizer=optimizer,
                                 max.mstep=max.mstep, ...)
@@ -113,7 +124,7 @@ em <- function(model, data, start, logger=TRUE, convergence=1e-02,
         if(logger == TRUE) {
             cat("Results of maximization \n")
             cat(paste0("Loglikelihood: ", round(-m.step$objective, 3), "\n"))
-            cat(paste0("Convergence: ", m.step$convergence[1], "\n"))
+            cat(paste0("Convergence message: ", m.step$convergence[1], "\n"))
             cat(paste0("Number of iterations: ", m.step$iterations, "\n"))
             cat("----------------------------------- \n")
         }
@@ -130,22 +141,25 @@ em <- function(model, data, start, logger=TRUE, convergence=1e-02,
         if (abs(ll.old - ll.new) < convergence) run <- FALSE
     }
 
-    cat("-----------------------------------\n")
-    cat("EM completed \n")
-    #cat(paste0("Previous loglikelihood: ", round(-ll.old, 3), "\n"))
-    #cat(paste0("Final loglikelihood: ", round(-ll.new, 3),"\n"))
-    cat("-----------------------------------\n")
+    
+    if(logger == TRUE) {
+        cat("-----------------------------------\n")
+        cat("EM completed \n")
+        #cat(paste0("Previous loglikelihood: ", round(-ll.old, 3), "\n"))
+        #cat(paste0("Final loglikelihood: ", round(-ll.new, 3),"\n"))
+        cat("-----------------------------------\n")
 
-    cat("-----------------------------------\n")
-    if (neg.hessian == TRUE) {
-        cat("Computing negative Hessian \n")
-    } else {
-        cat("Computing final model \n")
+        cat("-----------------------------------\n")
+        if (neg.hessian == TRUE) {
+            cat("Computing negative Hessian \n")
+        } else {
+            cat("Computing final model \n")
+        }
+        cat("-----------------------------------\n")
     }
-    cat("-----------------------------------\n")
 
     switch(class(model),
-       "lms" = {
+       "singleClass" = {
             final <- mstep_lms(model=model, P=P, dat=data,
                                parameters=par.new, neg.hessian=neg.hessian, m=m,
                                optimizer=optimizer,

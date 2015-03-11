@@ -5,7 +5,7 @@
 
 #--------------- main functions ---------------
 
-as.data.frame.lms <- as.data.frame.semm <- as.data.frame.nsemm <- function(x, ...) {
+as.data.frame.singleClass <- as.data.frame.semm <- as.data.frame.nsemm <- function(x, ...) {
     data <- data.frame(
         label = names(unlist(x$matrices$class1)))
     for (c in seq_len(length(x$matrices))) {
@@ -34,7 +34,7 @@ simulate.nsemm <- function(object, nsim=1, seed=NULL, n=400, m=16, parameters, .
 
     })
 
-    # see simulate_lms for explanation
+    # see simulate.singleClass for explanation
     border <- cumsum(w)
     prob <- runif(n)
 
@@ -63,7 +63,7 @@ simulate.semm <- function(object, nsim=1, seed=NULL, n=400, parameters, ...) {
                               sigma=sigma_semm(matrices=mod.filled$matrices[[c]]))
                               })
 
-    # see simulate.lms for explanation
+    # see simulate.singleClass for explanation
     border <- cumsum(w)
     prob <- runif(n)
 
@@ -76,18 +76,24 @@ simulate.semm <- function(object, nsim=1, seed=NULL, n=400, parameters, ...) {
     dat
 }
 
-simulate.lms <- function(object, nsim=1, seed=NULL, n=400, m=16, parameters, ...) {
+simulate.singleClass <- function(object, nsim=1, seed=NULL, n=400, m=16, parameters, ...) {
 
     # set seed
     set.seed(seed)
 
     # Gauss-Hermite quadrature
     k <- get_k(object$matrices$class1$Omega)
-    quad <- quadrature(m=m, k=k)
-    V <- quad$n
-    w <- quad$w
-    
-    parameters <- convert_parameters_lms(object, parameters)
+    if (k != 0){
+        quad <- quadrature(m=m, k=k)
+        V <- quad$n
+        w <- quad$w
+    } else {
+        V <- 0
+        w <- 1
+        # do not need mixtures, if I do not have interactions
+    }
+
+    parameters <- convert_parameters_singleClass(object, parameters)
     names(object$matrices$class1)[grep("Phi", names(object$matrices$class1))] <- "A"
 
     mod.filled <- fill_model(object, parameters)
@@ -98,24 +104,25 @@ simulate.lms <- function(object, nsim=1, seed=NULL, n=400, m=16, parameters, ...
                            mean=mu_lms(model=mod.filled, z=V[i,]),
                            sigma=sigma_lms(model=mod.filled, z=V[i,]))
                            })
+    dat <- dat.sim
 
     # decide which data points from each mixture should be included in
     # simulated data set: weights give intervall borders between 0 and 1;
     # we draw random numbers from a uniform distribution and check in what
     # intervall they lie: the ith element from that distribution will be
     # taken and put into the data frame
-    border <- cumsum(w)
-    prob <- runif(n)
+    if (k != 0){
+        border <- cumsum(w)
+        prob <- runif(n)
 
-    dat <- NULL
-    for (i in seq_len(n)){
-        ind <- sum(prob[i] > border) + 1
-        dat <- rbind(dat, dat.sim[[ind]][i,])
+        dat <- NULL
+        for (i in seq_len(n)){
+            ind <- sum(prob[i] > border) + 1
+            dat <- rbind(dat, dat.sim[[ind]][i,])
+        }
     }
-
     dat
 }
-
 
 summary.emEst <- function(object, ...) {
 
@@ -180,7 +187,56 @@ print.summary.emEst <- function(x, digits=max(3, getOption("digits") - 3),
 
 }
 
-logLik.emEst <- function(object, ...){
+summary.qmlEst <- function(object, ...) {
+
+    # estimates
+    est <- object$coefficients
+
+    # standard errors
+    if (is.numeric(est)) {
+        s.error <- calc_standard_error(object$neg.hessian)
+        tvalue <- est / s.error
+        pvalue <- 2 * pnorm(-abs(tvalue))
+        est.table <- cbind(est, s.error, tvalue, pvalue)
+        dimnames(est.table)  <- list(names(est), c("Estimate", "Std. Error", "t value", "Pr(>|z|)"))
+    } else {
+        est.table <- Reduce('rbind', lapply(seq_along(est), function(c) {
+                            s.error <- calc_standard_error(object$neg.hessian[[c]])
+                            tvalue <- est[[c]] / s.error
+                            pvalue <- 2 * pnorm(-abs(tvalue))
+                            est.table <- cbind(est[[c]], s.error, tvalue, pvalue)
+                            dimnames(est.table)  <- list(paste0("class", c, ".", names(est[[c]])),
+                                                         c("Estimate", "Std. Error",
+                                                           "t value", "Pr(>|z|)"))
+                            est.table
+                           }))
+    }
+
+    ans <- list(model=object$model.class,
+                estimates=est.table,
+                iterations=object$iterations,
+                finallogLik=object$objective)
+
+    if (object$model.class == "semm" || object$model.class == "nsemm") {
+        ans$class.weights <- object$info$w
+    }
+
+    class(ans) <- "summary.qmlEst"
+
+    ans
+}
+
+print.summary.qmlEst <- function(x, digits=max(3, getOption("digits") - 3),
+                               cs.ind=2:3, ...) {
+    
+    cat("\nSummary for model of class", x$model, "estimated with QML\n")
+    cat("\nEstimates:\n")
+    printCoefmat(x$estimates, digits=digits, cs.ind=cs.ind, ...)
+    cat("\nNumber of iterations:", x$iterations,
+        "\nFinal loglikelihood:", round(x$finallogLik, 3), "\n") 
+}
+
+logLik.emEst <- logLik.qmlEst <- function(object, ...){
     if(length(list(...)))
         warning("extra arguments discarded")
 
@@ -190,7 +246,7 @@ logLik.emEst <- function(object, ...){
     out
 }
 
-anova.emEst <- function(object, ..., test=c("Chisq", "none")) {
+anova.emEst <- anova.qmlEst <- function(object, ..., test=c("Chisq", "none")) {
     # Adapted from anova.polr by Brian Ripley
     
     test <- match.arg(test)
@@ -199,8 +255,8 @@ anova.emEst <- function(object, ..., test=c("Chisq", "none")) {
         stop('anova is not implemented for a single "emEst" object')
 
     mlist <- list(object, ...)
-    if (any(!sapply(mlist, function(x) x$model.class == "lms"))) {
-        stop('Likelihood Ratio Test only meaningful for models of class "lms".')
+    if (any(!sapply(mlist, function(x) x$model.class == "singleClass"))) {
+        stop('Likelihood Ratio Test only meaningful for models of class "singleClass".')
     }
 
     nlist <- sapply(mlist, function(x) x$info$n)
@@ -236,7 +292,7 @@ anova.emEst <- function(object, ..., test=c("Chisq", "none")) {
     out
 }
 
-AIC.emEst <- function(object, ..., k=2) {
+AIC.emEst <- AIC.qmlEst <- function(object, ..., k=2) {
 
     dots <- list(...)
     if (length(dots) == 0){
@@ -259,7 +315,7 @@ AIC.emEst <- function(object, ..., k=2) {
     out
 }
 
-BIC.emEst <- function(object, ...) {
+BIC.emEst <- BIC.qmlEst <- function(object, ...) {
 
     dots <- list(...)
     if (length(dots) == 0){
@@ -286,7 +342,7 @@ BIC.emEst <- function(object, ...) {
 plot.emEst <- function(x, y, ...) {
 
     plot(x$loglikelihoods, type="l", xlab="Number of iterations", 
-         ylab="log likelihood", axes=F)
+         ylab="log likelihood", axes=F, ...)
     axis(1, at=1:length(x$loglikelihoods))
     axis(2)
     box()
