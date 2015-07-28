@@ -70,14 +70,14 @@ specify_sem <- function(num.x, num.y, num.xi, num.eta, xi, eta, num.classes=1,
     # Gamma and Beta
     if (relation.lat == "default"){
         Gamma <- matrix(nrow=num.eta, ncol=num.xi)
-        Beta  <- diag(1, nrow=num.eta)
+        Beta  <- diag(num.eta)
     }
     else {
         GB    <- rel_lat(relation.lat, num.eta=num.eta, num.xi=num.xi)
         Gamma <- tryCatch({ GB[[grep("G", names(GB))]] },
                             error=function(e) matrix(nrow=num.eta, ncol=num.xi) )
         Beta  <- tryCatch({ GB[[grep("B", names(GB))]] },
-                            error=function(e) diag(1, nrow=num.eta))
+                            error=function(e) diag(num.eta))
     }
     # Theta.d
     Theta.d <- diag(NA, nrow=num.x)
@@ -124,7 +124,7 @@ specify_sem <- function(num.x, num.y, num.xi, num.eta, xi, eta, num.classes=1,
     for (c in seq_len(num.classes)) {
         if (model.class == "singleClass") {
             matrices[[c]] <- list(Lambda.x=Lambda.x, Lambda.y=Lambda.y,
-                                  Gamma=Gamma, Theta.d=Theta.d,
+                                  Gamma=Gamma, Beta=Beta, Theta.d=Theta.d,
                                   Theta.e=Theta.e, Psi=Psi, Phi=Phi,
                                   nu.x=nu.x, nu.y=nu.y, alpha=alpha, tau=tau,
                                   Omega=Omega)
@@ -227,15 +227,7 @@ create_sem <- function(dat){
         Omega.matrix    <- matrix(dat[dat$label %in% Omega, paste0("class",c)],
                                   nrow=num.xi, ncol=num.xi)
 
-        if (num.classes == 1) {
-            matrices[[c]] <- list(Lambda.x=Lambda.x.matrix,
-                                  Lambda.y=Lambda.y.matrix, Gamma=Gamma.matrix,
-                                  Theta.d=Theta.d.matrix,
-                                  Theta.e=Theta.e.matrix, Psi=Psi.matrix,
-                                  Phi=Phi.matrix, nu.x=nu.x.matrix,
-                                  nu.y=nu.y.matrix, alpha=alpha.matrix,
-                                  tau=tau.matrix, Omega=Omega.matrix)
-        } else if (all(is.na(Omega.matrix))) {
+        if (all(is.na(Omega.matrix))) {
             matrices[[c]] <- list(Lambda.x=Lambda.x.matrix,
                                   Lambda.y=Lambda.y.matrix, Gamma=Gamma.matrix,
                                   Beta=Beta.matrix, Theta.d=Theta.d.matrix,
