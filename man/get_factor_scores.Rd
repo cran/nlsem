@@ -19,10 +19,15 @@
   Gives back a matrix with as many columns as number of exogenous
   variables and as many rows as number of observations.
 }
+\references{
+  Wall, M. M. & Amemiya, Y. (2003). A method of moments technique for
+  fitting interaction effects in structural equation models. \emph{British
+  Journal of Mathematical and Statistical Psychology 56}, 47--63.
+}
 \examples{
 # specify model
 model <- specify_sem(num.x = 11, num.y = 4, num.xi = 2, num.eta = 1, 
-  xi = "x1-x5,x6-x11", eta = "y1-y4", interaction = "xi1:xi2")
+  xi = "x1-x5,x6-x11", eta = "y1-y4", interaction = "eta1~xi1:xi2")
 
 data("jordan")
 

@@ -10,13 +10,14 @@ nonnormal distributions.
 }
 \details{
 This is a package for estimating nonlinear structural equation mixture
-models using an expectation-maximization (EM) algorithm. Three different
+models using an expectation-maximization (EM) algorithm. Four different
 approaches are implemented. Firstly, the Latent Moderated Structural
-Equations (LMS) approach (Klein & Moosbrugger, 2000), which allows for
-two-way interaction and quadratic terms in the structural model. Due to the
+Equations (LMS) approach (Klein & Moosbrugger, 2000) and the Quasi-Maximum
+Likelihood (QML) approach (Klein & Muthen, 2007), which allow for two-way
+interaction and quadratic terms in the structural model. Due to the
 nonlinearity, the latent criterion variables cannot be assumed to be
 normally distributed. Therefore, the latent criterins's distribution is
-approximated with a mixture of normal distributions. Secondly, the
+approximated with a mixture of normal distributions in LMS. Secondly, the
 Structural Equation finite Mixture Model (STEMM or SEMM) approach (Jedidi,
 Jagpal & DeSarbo, 1997), which uses mixtures to model latent classes. In
 this way it can deal with heterogeneity in the sample or nonlinearity and
@@ -32,26 +33,23 @@ on the specification of \code{interaction} and the number of latent classes
 estimated using \code{\link{em}}.
 }
 \references{
-    Jedidi, K., Jagpal, H. S., & DeSarbo, W. S. (1997). STEMM: A General
-    Finite Mixture Structural Equation Model, \emph{Journal of
-    Classification, 14}, 23--50.
+  Jedidi, K., Jagpal, H. S., & DeSarbo, W. S. (1997). STEMM: A General
+  Finite Mixture Structural Equation Model, \emph{Journal of
+  Classification, 14}, 23--50.
 
-    Kelava, A., Nagengast, B., & Brandt, H. (2014). A nonlinear structural
-    equation mixture modeling approach for non-normally distributed latent
-    predictor variables. \emph{Structural Equation Modeling, 21}, 468-481.
+  Kelava, A., Nagengast, B., & Brandt, H. (2014). A nonlinear structural
+  equation mixture modeling approach for non-normally distributed latent
+  predictor variables. \emph{Structural Equation Modeling, 21}, 468-481.
 
-    Klein, A. &, Moosbrugger, H. (2000). Maximum likelihood estimation of
-    latent interaction effects with the LMS method. \emph{Psychometrika, 65},
-    457--474.
+  Klein, A. &, Moosbrugger, H. (2000). Maximum likelihood estimation of
+  latent interaction effects with the LMS method. \emph{Psychometrika, 65},
+  457--474.
 }
 \section{Future Features}{
 \itemize{
-    \item Constraining parameters to be equal.
-    \item Indirect approaches of Structural Equation Mixture Models.
-    \item NSEMM and LMS for more than one latent endogenous variable.
-    \item Parameter standardization.
-    \item Implementation of Quasi-Maximum Likelihood Estimation (QML).
+  \item NSEMM, LMS and QML for more than one latent endogenous variable.
+  \item Parameter standardization.
 }
 }
-\keyword{ package }
+\keyword{package}
 

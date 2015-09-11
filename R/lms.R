@@ -1,7 +1,7 @@
 # lms.R
 #
 # created: Sep/11/2014, NU
-# last mod: Feb/26/2015, NU
+# last mod: Aug/20/2015, NU
 
 #--------------- main functions ---------------
 
@@ -9,7 +9,8 @@
 # indicators (see Equations 16 and 18, 19 in Klein & Moosbrugger, 2000)
 mu_lms <- function(model, z) {
     
-    check_filled(model)
+    #check_filled(model)
+    # TODO: Remove?
 
     matrices <- model$matrices$class1
     k    <- get_k(matrices$Omega)     # number of nonzero rows in Omega
@@ -35,7 +36,7 @@ mu_lms <- function(model, z) {
 # indicators (see Equations 17 and 20-22 in Klein & Moosbrugger, 2000)
 sigma_lms <- function(model, z) {
 
-    check_filled(model)
+    #check_filled(model)
 
     matrices <- model$matrices$class1
     k     <- get_k(matrices$Omega)    # number of nonzero rows in Omega
@@ -136,13 +137,9 @@ mstep_lms <- function(parameters, model, dat, P, m, neg.hessian=FALSE,
             # See semm.R helper function
             est <- nlminb(start=parameters, objective=loglikelihood_lms, dat=dat,
                           model=model, P=P, upper=model$info$bounds$upper,
-                          lower=model$info$bounds$lower,
-                          control=control, ...)
+                          lower=model$info$bounds$lower, control=control,
+                          ...)
         )
-        if (neg.hessian == TRUE){
-            est$hessian <- fdHess(pars=est$par, fun=loglikelihood_lms,
-                                        model=model, dat=dat, P=P)$Hessian
-        }
     } else {
 
         if (is.null(control$maxit)){
@@ -155,15 +152,13 @@ mstep_lms <- function(parameters, model, dat, P, m, neg.hessian=FALSE,
                      control=control, ...)
         # fit est to nlminb output
         names(est) <- gsub("value", "objective", names(est))
-        if (neg.hessian == TRUE){
-            #est$hessian <- optimHess(est$par, fn=loglikelihood_lms, model=model,
-            #                         P=P, dat=dat)
-            ## --> gives too often a singular neg. Hessian
-            est$hessian <- fdHess(pars=est$par, fun=loglikelihood_lms,
-                                        model=model, dat=dat, P=P)$Hessian
-  
-        }
     }
+    if (neg.hessian == TRUE){
+    est$hessian <- fdHess(pars=est$par, fun=loglikelihood_lms,
+                          model=model, dat=dat, P=P)$Hessian
+  
+    }
+
 
     est
 }
@@ -211,16 +206,16 @@ quadrature <- function(m, k) {
 # Convert parameters for Phi in LMS model to A 
 convert_parameters_singleClass <- function(model, parameters) {
 
-    names(parameters) <- model$info$par.names
-    Phi <- matrix(0, nrow=model$info$num.xi, ncol=model$info$num.xi)
-    Phi[lower.tri(Phi, diag=TRUE)] <- parameters[grep("Phi", names(parameters))]
-    Phi <- fill_symmetric(Phi)
-    A <- tryCatch({ t(chol(Phi)) }, 
-                  error=function(e) {
-                    warning("Starting parameters for Phi are not positive definite. Identity matrix was used instead.")
-                    diag(1, model$info$num.xi)}
-    )
-    parameters[grep("Phi", names(parameters))] <- A[lower.tri(A, diag=TRUE)]
+  names(parameters) <- model$info$par.names
+  Phi <- matrix(0, nrow=model$info$num.xi, ncol=model$info$num.xi)
+  Phi[lower.tri(Phi, diag=TRUE)] <- parameters[grep("Phi", names(parameters))]
+  Phi <- fill_symmetric(Phi)
+  A <- tryCatch({ t(chol(Phi)) }, 
+    error=function(e) {
+      warning("Starting parameters for Phi are not positive definite. Identity matrix was used instead.")
+      diag(1, model$info$num.xi)}
+  )
+  parameters[grep("Phi", names(parameters))] <- A[lower.tri(A, diag=TRUE)]
 
-    parameters
+  parameters
 }
