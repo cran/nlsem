@@ -26,11 +26,12 @@ combination of these two approaches, the Nonlinear Structural Equation
 Mixture Model (NSEMM) approach (Kelava, Nagengast & Brandt, 2014). Here,
 interaction and quadratic terms as well as latent classes can be modeled.
 
-All three models can be specified with \code{\link{specify_sem}}. Depending
+The models can be specified with \code{\link{specify_sem}}. Depending
 on the specification of \code{interaction} and the number of latent classes
 (\code{num.classes}) the returned object will be of class
 \code{singleClass}, \code{semm}, or \code{nsemm}. Each of these can be
-estimated using \code{\link{em}}.
+estimated using \code{\link{em}} and models of type \code{singleClass}
+can additionally be fitted with the function \code{\link{qml}}.
 }
 \references{
   Jedidi, K., Jagpal, H. S., & DeSarbo, W. S. (1997). STEMM: A General
@@ -44,6 +45,10 @@ estimated using \code{\link{em}}.
   Klein, A. &, Moosbrugger, H. (2000). Maximum likelihood estimation of
   latent interaction effects with the LMS method. \emph{Psychometrika, 65},
   457--474.
+
+  Klein, A. &, Muthen, B. O. (2007). Quasi-Maximum Likelihood Estimation
+  of Structural Equation Models With Multiple Interaction and Quadratic
+  Effects \emph{Multivariate Behavioral Research, 42}, 647--673.
 }
 \section{Future Features}{
 \itemize{
