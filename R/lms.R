@@ -1,7 +1,7 @@
 # lms.R
 #
 # created: Sep/11/2014, NU
-# last mod: Aug/20/2015, NU
+# last mod: Jan/02/2017, NU
 
 #--------------- main functions ---------------
 
@@ -46,6 +46,7 @@ sigma_lms <- function(model, z) {
     } else if (k == 0) {
         z.1 <- rep(0, n - k)
     } else z.1 <- z
+
     A.z   <- matrices$A %*% z.1 
     d.mat <- get_d(n=n, k=k)
     Lx.A  <- matrices$Lambda.x %*% matrices$A
@@ -182,7 +183,7 @@ get_k <- function(Omega) {
 # lower right half (compare Equations 20-22 in Klein & Moosbrugger, 2000)
 get_d <- function(n, k) {
     mat <- diag(n)
-    mat[1:k, 1:k] <- 0
+    diag(mat)[seq_len(k)] <- 0
     mat
 }
 
