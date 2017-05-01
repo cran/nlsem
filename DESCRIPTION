@@ -1,6 +1,6 @@
 Package: nlsem
-Version: 0.7
-Date: 2017-01-02
+Version: 0.8
+Date: 2017-05-01
 Title: Fitting Structural Equation Mixture Models
 Authors@R: c(person("Nora", "Umbach",
                     role = c("aut", "cre"),
@@ -21,7 +21,7 @@ Description: Estimation of structural equation models with nonlinear effects
   and underlying nonnormal distributions.
 License: GPL (>= 2)
 NeedsCompilation: no
-Packaged: 2017-01-02 13:16:07 UTC; NoraU
+Packaged: 2017-05-01 07:10:56 UTC; NoraU
 Author: Nora Umbach [aut, cre],
   Katharina Naumann [aut],
   David Hoppe [aut],
@@ -30,4 +30,4 @@ Author: Nora Umbach [aut, cre],
   Bernhard Schmitz [ctb]
 Maintainer: Nora Umbach <nora.umbach@web.de>
 Repository: CRAN
-Date/Publication: 2017-01-02 22:22:24
+Date/Publication: 2017-05-01 10:31:57 UTC
